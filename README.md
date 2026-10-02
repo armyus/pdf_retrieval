@@ -6,24 +6,43 @@ Point it at a folder filled with arbitrary PDFs and ask questions in natural lan
 
 ---
 
+## 🌟 Interactive Web Dashboard
+
+Launch the browser-based dashboard with a single command:
+
+```bash
+python app.py --folder ./data
+```
+Open your browser at **http://localhost:8000** to explore:
+- 💬 **Grounded RAG Assistant**: Ask questions and get answers with interactive citation cards.
+- 🔍 **Multi-Strategy Search**: Switch between Hybrid, Dense Vector, BM25, and Exact Match.
+- ⚖️ **Strategy Comparison**: Compare Dense vs BM25 results side-by-side for the same query.
+- 📊 **Evaluation Benchmark**: Run information retrieval benchmarks (P@K, MRR, MAP, nDCG) live.
+- 📁 **Document Repository Explorer**: Inspect discovered PDFs, pages, and extracted statistics.
+
+---
+
 ## Table of Contents
 
 1. [Features & Capabilities](#features--capabilities)
 2. [Prerequisites & Installation](#prerequisites--installation)
-3. [One-Command Demo](#one-command-demo)
-4. [User Guide: How to Use This Technology](#user-guide-how-to-use-this-technology)
-   - [Mode 1: Discovering PDFs](#1-discovering-pdfs-v0)
-   - [Mode 2: Keyword Search](#2-exact-keyword-search-v1)
-   - [Mode 3: Semantic Concept Search](#3-semantic-concept-search-v2)
-   - [Mode 4: Advanced Filtered & Grouped Search](#4-advanced-retrieval-presets--grouping-v3)
-   - [Mode 5: Grounded RAG Question Answering](#5-grounded-rag-question-answering-v4)
-   - [Mode 6: Advanced Hybrid Retrieval (Dense + BM25)](#6-advanced-hybrid-retrieval-v5)
-   - [Mode 7: Interactive Terminal QA Mode](#7-interactive-terminal-mode)
-5. [Swappable Retrievers Architecture](#swappable-retrievers-architecture)
-6. [Configuring LLM Backends](#configuring-llm-backends)
-7. [Running Tests](#running-tests)
-8. [Project Structure](#project-structure)
-9. [Roadmap](#roadmap)
+3. [Interactive Web Dashboard](#interactive-web-dashboard)
+4. [One-Command Terminal Demo](#one-command-terminal-demo)
+5. [User Guide: How to Use This Technology](#user-guide-how-to-use-this-technology)
+   - [Mode 1: Web Dashboard](#1-launch-the-web-dashboard-recommended)
+   - [Mode 2: Discovering PDFs](#2-discovering-pdfs-v0)
+   - [Mode 3: Exact Keyword Search](#3-exact-keyword-search-v1)
+   - [Mode 4: Semantic Concept Search](#4-semantic-concept-search-v2)
+   - [Mode 5: Advanced Filtered & Grouped Search](#5-advanced-retrieval-presets--grouping-v3)
+   - [Mode 6: Grounded RAG Question Answering](#6-grounded-rag-question-answering-v4)
+   - [Mode 7: Advanced Hybrid Retrieval (Dense + BM25)](#7-advanced-hybrid-retrieval-v5)
+   - [Mode 8: Quantitative Evaluation Benchmark](#8-quantitative-evaluation-benchmark-v6)
+   - [Mode 9: Interactive Terminal Mode](#9-interactive-terminal-mode)
+6. [Swappable Retrievers Architecture](#swappable-retrievers-architecture)
+7. [Configuring LLM Backends](#configuring-llm-backends)
+8. [Running Tests](#running-tests)
+9. [Project Structure](#project-structure)
+10. [Roadmap](#roadmap)
 
 ---
 
@@ -45,7 +64,10 @@ Point it at a folder filled with arbitrary PDFs and ask questions in natural lan
 - **V5 — Advanced Retrieval (Hybrid & Swappable Retrievers)**:
   - **Pure Python BM25Okapi Index**: Fast sparse keyword search with IDF precomputation & term saturation.
   - **Hybrid Fusion**: Combines dense vector semantics with sparse BM25 keyword rankings via **Reciprocal Rank Fusion (RRF)** or **Weighted Score Normalization**.
-  - **Swappable Architecture**: Easily switch between `hybrid`, `dense`, `bm25`, and `keyword` strategies without code refactoring.
+  - **Swappable Architecture**: Easily switch between `hybrid`, `dense`, `bm25`, and `keyword` strategies.
+- **V6 — Evaluation Framework & Interactive Web Dashboard**:
+  - **Information Retrieval Benchmark Suite**: Precision@K, Recall@K, Mean Reciprocal Rank (MRR), Mean Average Precision (MAP), and nDCG@K.
+  - **Flask Web Dashboard**: Responsive user interface for visual search, grounded RAG, side-by-side strategy comparison, and live benchmark evaluation.
 
 ---
 
@@ -78,15 +100,31 @@ Point it at a folder filled with arbitrary PDFs and ask questions in natural lan
 
 ---
 
-## One-Command Demo
+## Interactive Web Dashboard
 
-Run the automated walkthrough that demonstrates every stage on sample PDFs:
+To launch the web dashboard:
+
+```bash
+# Shortcut launcher:
+python app.py --folder ./data --port 8000
+
+# Or via main module:
+python -m src.main --folder ./data --dashboard --port 8000
+```
+
+Open **http://localhost:8000** in your browser.
+
+---
+
+## One-Command Terminal Demo
+
+To see every terminal capability running in sequence across sample PDFs:
 
 ```bash
 python demo.py --folder ./data
 ```
 
-This will showcase:
+This runs:
 1. PDF discovery
 2. Text extraction & keyword search
 3. Semantic dense vector search
@@ -98,27 +136,30 @@ This will showcase:
 
 ## User Guide: How to Use This Technology
 
-Place your PDF documents in a folder (e.g. `./data` or `C:/path/to/my_papers/`) and choose any of the following modes:
+### 1. Launch the Web Dashboard (Recommended)
+```bash
+python app.py --folder ./data
+```
 
-### 1. Discovering PDFs (V0)
+### 2. Discovering PDFs (V0)
 Scan a folder and list all discovered PDF files with sizes:
 ```bash
 python -m src.main --folder ./data
 ```
 
-### 2. Exact Keyword Search (V1)
+### 3. Exact Keyword Search (V1)
 Find all occurrences of a specific phrase across all PDFs:
 ```bash
 python -m src.main --folder ./data --query "cryptography" --strategy keyword
 ```
 
-### 3. Semantic Concept Search (V2)
+### 4. Semantic Concept Search (V2)
 Search conceptually without needing exact keyword matches:
 ```bash
 python -m src.main --folder ./data --query "How do we keep private messages secret with prime numbers?" --strategy dense
 ```
 
-### 4. Advanced Retrieval: Presets & Grouping (V3)
+### 5. Advanced Retrieval: Presets & Grouping (V3)
 Use precision presets, score thresholds, and group results by parent document:
 ```bash
 # High-precision preset with document grouping
@@ -128,13 +169,13 @@ python -m src.main --folder ./data --query "exploratory data analysis graphical 
 python -m src.main --folder ./data --query "clustering" --strategy dense --threshold 0.35 --filter-doc "ANALYSIS"
 ```
 
-### 5. Grounded RAG Question Answering (V4)
+### 6. Grounded RAG Question Answering (V4)
 Ask a natural-language question and get a synthesized answer backed by citations:
 ```bash
 python -m src.main --folder ./data --query "What are the main graphical techniques used in exploratory data analysis?" --rag
 ```
 
-### 6. Advanced Hybrid Retrieval (V5)
+### 7. Advanced Hybrid Retrieval (V5)
 Combine dense semantic vector similarity with sparse BM25 keyword matching via Reciprocal Rank Fusion:
 ```bash
 # Hybrid search across all PDFs
@@ -144,7 +185,26 @@ python -m src.main --folder ./data --query "cryptographic public key RSA prime f
 python -m src.main --folder ./data --query "How does RSA encryption ensure message confidentiality?" --rag --strategy hybrid
 ```
 
-### 7. Interactive Terminal Mode
+### 8. Quantitative Evaluation Benchmark (V6)
+Run information retrieval metrics across retrieval strategies:
+```bash
+python -m src.main --folder ./data --evaluate
+```
+
+**Leaderboard Output:**
+```text
+================================================================================
+  RETRIEVAL BENCHMARK LEADERBOARD (V6 Evaluation)
+================================================================================
+Strategy     | P@1      | P@3      | P@5      | MRR      | MAP      | nDCG@5  
+--------------------------------------------------------------------------------
+BM25         | 1.0000   | 0.9333   | 0.8800   | 1.0000   | 2.2000   | 1.0000  
+DENSE        | 1.0000   | 0.8000   | 0.8800   | 1.0000   | 2.0650   | 0.9618  
+HYBRID       | 1.0000   | 0.8667   | 0.8400   | 1.0000   | 2.1000   | 1.0000  
+================================================================================
+```
+
+### 9. Interactive Terminal Mode
 Start an interactive conversational session over your PDFs:
 ```bash
 # Interactive Hybrid RAG QA (Recommended):
@@ -152,16 +212,11 @@ python -m src.main --folder ./data --search --rag --strategy hybrid
 
 # Interactive Semantic Search:
 python -m src.main --folder ./data --search --strategy dense
-
-# Interactive BM25 Search:
-python -m src.main --folder ./data --search --strategy bm25
 ```
 
 ---
 
 ## Swappable Retrievers Architecture
-
-The system provides a unified abstraction hierarchy allowing any retrieval strategy to be swapped dynamically:
 
 ```text
 BaseRetriever (Interface)
@@ -208,7 +263,7 @@ The test suite covers every component with 100% pass rate:
 python -m pytest tests/ -v
 ```
 
-**115 tests** passing:
+**126 tests** passing:
 - 23 PDF scanner tests
 - 22 PDF parser & metadata extraction tests
 - 16 Keyword search tests
@@ -223,6 +278,8 @@ python -m pytest tests/ -v
 - 4 RAG pipeline tests
 - 4 BM25 engine tests
 - 5 Swappable retrievers & hybrid fusion tests
+- 7 Evaluation framework tests
+- 4 Web Dashboard API tests
 
 ---
 
@@ -249,7 +306,9 @@ pdf_retrieval/
 │   ├── retriever.py               # Unified retriever exports & display helpers
 │   ├── prompt_builder.py          # V4: Grounded context prompt builder
 │   ├── llm_engine.py              # V4: Modular LLM backends (Ollama, GGUF, Extractive)
-│   └── rag.py                     # V4: End-to-end RAG question answering pipeline
+│   ├── rag.py                     # V4: End-to-end RAG question answering pipeline
+│   ├── evaluation.py              # V6: Information Retrieval evaluation benchmark suite
+│   └── dashboard.py               # V6: Interactive Flask Web Dashboard & REST API
 ├── tests/
 │   ├── __init__.py
 │   ├── test_pdf_scanner.py        # 23 tests
@@ -265,7 +324,10 @@ pdf_retrieval/
 │   ├── test_llm_engine.py         # 5 tests
 │   ├── test_rag.py                # 4 tests
 │   ├── test_bm25.py               # 4 tests
-│   └── test_retrievers.py         # 5 tests (Total: 115 tests)
+│   ├── test_retrievers.py         # 5 tests
+│   ├── test_evaluation.py         # 7 tests
+│   └── test_dashboard.py          # 4 tests (Total: 126 tests)
+├── app.py                         # Web Dashboard root launcher
 ├── demo.py                        # Interactive showcase demo script
 ├── requirements.txt               # Project dependencies
 ├── .gitignore                     # Git ignore rules
@@ -284,7 +346,7 @@ pdf_retrieval/
 | V3      | Better Retrieval                 | ✅ Done  |
 | V4      | RAG (LLM-powered answers)        | ✅ Done  |
 | V5      | Advanced Retrieval (Hybrid/BM25) | ✅ Done  |
-| V6      | Evaluation Framework             | ⬜ Next  |
+| V6      | Evaluation & Web Dashboard       | ✅ Done  |
 
 ---
 

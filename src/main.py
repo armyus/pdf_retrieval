@@ -123,6 +123,22 @@ def parse_args(argv=None) -> argparse.Namespace:
         help="LLM backend for RAG answer generation (auto, ollama, llama_cpp, extractive).",
     )
     parser.add_argument(
+        "--dashboard",
+        action="store_true",
+        help="Launch the interactive Web Dashboard UI in your browser.",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="Port for the Web Dashboard UI (default: 8000).",
+    )
+    parser.add_argument(
+        "--evaluate",
+        action="store_true",
+        help="Run the comparative Information Retrieval benchmark suite (V6).",
+    )
+    parser.add_argument(
         "--model-name",
         type=str,
         default=None,
@@ -183,11 +199,22 @@ def main(argv=None) -> int:
     if not pdf_files:
         return 0
 
+    # --- Dashboard Mode ---
+    if args.dashboard:
+        from src.dashboard import create_app
+        print("\n" + "=" * 70)
+        print(f"  🚀 Launching Web Dashboard on http://localhost:{args.port}")
+        print("=" * 70 + "\n")
+        app = create_app(folder_path=args.folder)
+        app.run(host="127.0.0.1", port=args.port, debug=False)
+        return 0
+
     use_rag = args.rag
+    use_eval = args.evaluate
     is_interactive = args.search and not args.query
 
-    # If neither query nor search mode requested, stop after V0 discovery
-    if not args.search and not args.query:
+    # If neither query nor search nor eval mode requested, stop after V0 discovery
+    if not args.search and not args.query and not use_eval:
         return 0
 
     # --- Parse PDFs ---
@@ -209,6 +236,18 @@ def main(argv=None) -> int:
         for d in errors:
             print(f"    - {d.filename}: {d.error}")
     print()
+
+    # --- V6: Evaluation Mode ---
+    if use_eval:
+        from src.evaluation import Evaluator, print_benchmark_summary
+        print("Running Comparative Information Retrieval Benchmark (V6 Evaluation)...")
+        evaluator = Evaluator(k_values=[1, 3, 5])
+        benchmarks = evaluator.run_comparative_benchmark(
+            documents=documents,
+            strategies=["bm25", "dense", "hybrid"],
+        )
+        print_benchmark_summary(benchmarks)
+        return 0
 
     # Document filter helper
     doc_filter_fn = None

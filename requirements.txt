@@ -4,6 +4,9 @@ pytest
 # V1 — Text Extraction + Keyword Search
 PyMuPDF
 
-# V2 — Semantic Search (Embeddings & Vector Indexing)
+# V2/V3/V5 — Embeddings, Dense Vector Index, & BM25
 sentence-transformers
 numpy
+
+# V6 — Web Dashboard UI
+Flask
