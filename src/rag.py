@@ -8,7 +8,7 @@ local LLM answer synthesis, and source citation mapping.
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
 
-from src.retriever import SemanticRetriever
+from src.retrievers import BaseRetriever
 from src.prompt_builder import PromptBuilder
 from src.llm_engine import BaseLLM, get_llm_engine
 
@@ -28,7 +28,7 @@ class RAGPipeline:
 
     def __init__(
         self,
-        retriever: SemanticRetriever,
+        retriever: BaseRetriever,
         llm: Optional[BaseLLM] = None,
         llm_backend: str = "auto",
         model_name_or_path: Optional[str] = None,

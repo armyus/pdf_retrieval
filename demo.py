@@ -7,6 +7,7 @@ This interactive script guides you through every feature of the system:
   3. Dense Semantic Search (V2)
   4. Advanced Retrieval with Deduplication & Grouping (V3)
   5. Grounded RAG Question Answering with Citations (V4)
+  6. Hybrid Retrieval: Dense + BM25 Fusion (V5)
 
 Usage:
     python demo.py
@@ -15,13 +16,13 @@ Usage:
 
 import argparse
 import sys
-import time
 
 from src.pdf_scanner import PDFScanner, print_results
 from src.pdf_parser import PDFParser
 from src.keyword_search import KeywordSearcher, print_search_results
 from src.config import RetrievalConfig
-from src.retriever import SemanticRetriever, print_semantic_results
+from src.retrievers import get_retriever, HybridRetriever
+from src.retriever import print_semantic_results
 from src.rag import RAGPipeline, print_rag_result
 
 
@@ -32,7 +33,7 @@ def print_banner(title: str):
 
 
 def run_demo(folder_path: str = "./data"):
-    print_banner("PDF SEMANTIC RETRIEVAL & RAG SYSTEM — DEMO WALKTHROUGH")
+    print_banner("PDF RETRIEVAL & RAG SYSTEM — COMPLETE DEMO SHOWCASE")
     print(f"Target PDF folder: {folder_path}\n")
 
     # -------------------------------------------------------------
@@ -67,32 +68,30 @@ def run_demo(folder_path: str = "./data"):
     print(f"\nRunning exact keyword search for: '{keyword_query}'...")
     keyword_searcher = KeywordSearcher()
     kw_results = keyword_searcher.search(documents, keyword_query)
-    # Show top 2 for demo brevity
     print_search_results(kw_results[:2], keyword_query)
 
     # -------------------------------------------------------------
     # STAGE 3: Semantic Search with Dense Embeddings (V2)
     # -------------------------------------------------------------
     print_banner("STAGE 3: Dense Semantic Search (V2)")
-    print("Indexing text chunks into in-memory vector store (sentence-transformers)...")
-    config = RetrievalConfig.default()
-    retriever = SemanticRetriever(config=config)
-    total_chunks = retriever.index_documents(documents)
+    print("Indexing text chunks with sentence-transformers embeddings...")
+    dense_retriever = get_retriever("dense", RetrievalConfig.dense_only())
+    total_chunks = dense_retriever.index_documents(documents)
     print(f"Generated embeddings and indexed {total_chunks} text chunks.\n")
 
     conceptual_query = "How do we keep private messages secret using prime numbers?"
     print(f"Asking a conceptual query (no exact keywords required):\n> \"{conceptual_query}\"")
-    sem_results = retriever.search(conceptual_query, top_k=2)
+    sem_results = dense_retriever.search(conceptual_query, top_k=2)
     print_semantic_results(sem_results, conceptual_query)
 
     # -------------------------------------------------------------
-    # STAGE 4: Better Retrieval with Deduplication & Grouping (V3)
+    # STAGE 4: Refined Retrieval with Presets & Document Grouping (V3)
     # -------------------------------------------------------------
     print_banner("STAGE 4: Refined Retrieval with Presets & Document Grouping (V3)")
     v3_query = "exploratory data analysis graphical techniques"
-    print(f"Query: \"{v3_query}\" (Preset: Precise, Threshold: 0.35, Deduplication: ON)")
+    print(f"Query: \"{v3_query}\" (Preset: Precise, Deduplication: ON)")
 
-    v3_results = retriever.search(v3_query, top_k=3, score_threshold=0.35, deduplicate=True)
+    v3_results = dense_retriever.search(v3_query, top_k=3, score_threshold=0.35, deduplicate=True)
     print_semantic_results(v3_results, v3_query, group_by_doc=True)
 
     # -------------------------------------------------------------
@@ -103,14 +102,27 @@ def run_demo(folder_path: str = "./data"):
     print(f"Question: \"{rag_query}\"")
     print("Synthesizing grounded answer with numbered citations...\n")
 
-    rag_pipeline = RAGPipeline(retriever=retriever, llm_backend="auto")
+    rag_pipeline = RAGPipeline(retriever=dense_retriever, llm_backend="auto")
     rag_result = rag_pipeline.answer(rag_query, top_k=3)
     print_rag_result(rag_result)
 
+    # -------------------------------------------------------------
+    # STAGE 6: Hybrid Retrieval: Dense + BM25 Fusion (V5)
+    # -------------------------------------------------------------
+    print_banner("STAGE 6: Advanced Hybrid Retrieval (V5: Dense + BM25 with RRF)")
+    hybrid_query = "cryptographic public key RSA prime factors"
+    print(f"Query: \"{hybrid_query}\"")
+    print("Fusing Dense Embeddings + BM25 Lexical rankings via Reciprocal Rank Fusion (RRF)...")
+
+    hybrid_retriever = get_retriever("hybrid", RetrievalConfig.default())
+    hybrid_retriever.index_documents(documents)
+    hybrid_results = hybrid_retriever.search(hybrid_query, top_k=3)
+    print_semantic_results(hybrid_results, hybrid_query)
+
     print("\n" + "=" * 75)
     print("  DEMO COMPLETED SUCCESSFULLY!")
-    print("  You can now run custom queries using:")
-    print("    python -m src.main --folder ./data --query \"Your Question\" --rag")
+    print("  Try custom runs:")
+    print("    python -m src.main --folder ./data --query \"Your Question\" --rag --strategy hybrid")
     print("    python -m src.main --folder ./data --search --rag (Interactive Mode)")
     print("=" * 75 + "\n")
 

@@ -8,12 +8,14 @@ Usage:
     # V1: Keyword search
     python -m src.main --folder ./data --query "cryptography" --keyword
 
-    # V2/V3: Semantic search with presets & thresholds
-    python -m src.main --folder ./data --query "How do machines learn?" --semantic --preset precise
+    # V2/V3: Semantic / Dense search
+    python -m src.main --folder ./data --query "How do machines learn?" --strategy dense
 
-    # V4: Grounded RAG with Local LLM / Extractive synthesis & citations
-    python -m src.main --folder ./data --query "How does RSA encryption work and what role do primes play?" --rag
-    python -m src.main --folder ./data --search --rag
+    # V4: Grounded RAG with citations
+    python -m src.main --folder ./data --query "How does RSA encryption work?" --rag
+
+    # V5: Hybrid retrieval (Dense + BM25 with Reciprocal Rank Fusion)
+    python -m src.main --folder ./data --query "exploratory data analysis techniques" --strategy hybrid --group-by-doc
 """
 
 import argparse
@@ -46,12 +48,19 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument(
         "--semantic",
         action="store_true",
-        help="Use semantic search with embeddings (default when --rag is enabled).",
+        help="Shortcut for semantic search (same as --strategy dense).",
     )
     parser.add_argument(
         "--keyword",
         action="store_true",
-        help="Explicitly use keyword search instead of semantic search / RAG.",
+        help="Shortcut for exact keyword search (same as --strategy keyword).",
+    )
+    parser.add_argument(
+        "--strategy",
+        type=str,
+        choices=["hybrid", "dense", "bm25", "keyword"],
+        default="hybrid",
+        help="Retrieval strategy: hybrid (Dense+BM25), dense (embeddings), bm25 (lexical), keyword (exact substring). Default: hybrid.",
     )
     parser.add_argument(
         "--query",
@@ -69,7 +78,7 @@ def parse_args(argv=None) -> argparse.Namespace:
         "--threshold",
         type=float,
         default=None,
-        help="Minimum similarity score threshold (default: from config preset or 0.30).",
+        help="Minimum similarity score threshold (default: from config preset or 0.0).",
     )
     parser.add_argument(
         "--preset",
@@ -131,6 +140,14 @@ def build_config(args: argparse.Namespace) -> RetrievalConfig:
     else:
         config = RetrievalConfig.default()
 
+    # Determine strategy
+    if args.keyword:
+        config.strategy = "keyword"
+    elif args.semantic:
+        config.strategy = "dense"
+    elif args.strategy:
+        config.strategy = args.strategy
+
     if args.chunk_size is not None:
         config.chunk_size = args.chunk_size
     if args.chunk_overlap is not None:
@@ -167,7 +184,6 @@ def main(argv=None) -> int:
         return 0
 
     use_rag = args.rag
-    use_semantic = args.semantic or use_rag
     is_interactive = args.search and not args.query
 
     # If neither query nor search mode requested, stop after V0 discovery
@@ -200,17 +216,17 @@ def main(argv=None) -> int:
         substr = args.filter_doc.lower()
         doc_filter_fn = lambda fn: substr in fn.lower()
 
+    config = build_config(args)
+
     # --- V4: RAG Mode ---
     if use_rag:
-        from src.retriever import SemanticRetriever
+        from src.retrievers import get_retriever
         from src.rag import RAGPipeline, print_rag_result
 
-        config = build_config(args)
-        print(f"Configuring RAG Pipeline ({args.preset} preset, backend: {args.llm_backend})...")
-        print("\nBuilding semantic vector index (generating embeddings)...")
-        retriever = SemanticRetriever(config=config)
+        print(f"Configuring RAG Pipeline (Strategy: {config.strategy.upper()}, backend: {args.llm_backend})...")
+        retriever = get_retriever(strategy=config.strategy, config=config)
         total_chunks = retriever.index_documents(documents)
-        print(f"Indexed {total_chunks} text chunks into vector store.\n")
+        print(f"Indexed {total_chunks} text chunks into {config.strategy.upper()} index.\n")
 
         rag_pipeline = RAGPipeline(
             retriever=retriever,
@@ -229,7 +245,7 @@ def main(argv=None) -> int:
             return 0
 
         if is_interactive:
-            print("=== Interactive Grounded RAG Question Answering ===")
+            print(f"=== Interactive Grounded RAG ({config.strategy.upper()}) ===")
             print("Ask questions about your documents (or type 'quit' to exit):")
             while True:
                 try:
@@ -253,20 +269,18 @@ def main(argv=None) -> int:
                 )
                 print_rag_result(result)
 
-    # --- V2/V3: Semantic Search Mode ---
-    elif use_semantic:
-        from src.retriever import SemanticRetriever, print_semantic_results
+    # --- V1/V2/V3/V5: Retrieval Search Mode ---
+    else:
+        from src.retrievers import get_retriever
+        from src.retriever import print_semantic_results
 
-        config = build_config(args)
-        print(f"Retrieval configuration ({args.preset} preset):")
+        print(f"Retrieval Configuration (Strategy: {config.strategy.upper()}, preset: {args.preset}):")
         print(f"  Chunk size: {config.chunk_size} | Overlap: {config.chunk_overlap}")
-        print(f"  Top-K: {config.top_k} | Score Threshold: {config.score_threshold}")
-        print(f"  Deduplication: {config.deduplicate}")
-        print("\nBuilding semantic vector index (generating embeddings)...")
+        print(f"  Top-K: {config.top_k} | Deduplication: {config.deduplicate}")
 
-        retriever = SemanticRetriever(config=config)
+        retriever = get_retriever(strategy=config.strategy, config=config)
         total_chunks = retriever.index_documents(documents)
-        print(f"Indexed {total_chunks} text chunks into vector store.\n")
+        print(f"Indexed {total_chunks} text chunks.\n")
 
         if args.query:
             results = retriever.search(
@@ -285,8 +299,8 @@ def main(argv=None) -> int:
             return 0
 
         if is_interactive:
-            print("=== Interactive Semantic Search Mode ===")
-            print("Enter your question/concept (or 'quit' to exit):")
+            print(f"=== Interactive Search Mode ({config.strategy.upper()}) ===")
+            print("Enter your query (or 'quit' to exit):")
             while True:
                 try:
                     query = input("\n> ").strip()
@@ -314,40 +328,6 @@ def main(argv=None) -> int:
                     show_metadata=True,
                     group_by_doc=args.group_by_doc,
                 )
-
-    # --- V1: Keyword Search Mode ---
-    else:
-        from src.keyword_search import KeywordSearcher, print_search_results
-
-        searcher = KeywordSearcher()
-        search_docs = documents
-        if doc_filter_fn:
-            search_docs = [d for d in documents if doc_filter_fn(d.filename)]
-
-        if args.query:
-            results = searcher.search(search_docs, args.query)
-            print_search_results(results, args.query)
-            return 0
-
-        if is_interactive:
-            print("=== Interactive Keyword Search Mode ===")
-            print("Enter your keyword query (or 'quit' to exit):")
-            while True:
-                try:
-                    query = input("\n> ").strip()
-                except (EOFError, KeyboardInterrupt):
-                    print("\nGoodbye!")
-                    break
-
-                if query.lower() in ("quit", "exit", "q"):
-                    print("Goodbye!")
-                    break
-
-                if not query:
-                    continue
-
-                results = searcher.search(search_docs, query)
-                print_search_results(results, query)
 
     return 0
 
