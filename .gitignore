@@ -1,0 +1,31 @@
+# Byte-compiled & Testing
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Distribution
+dist/
+build/
+*.egg-info/
+
+# Data (keep structure, ignore large PDFs in version control)
+# data/pdfs/  — uncomment to ignore PDFs in git
+
+# Vector stores / caches (future versions)
+*.faiss
+*.pkl
+*.npy

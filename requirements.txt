@@ -1,0 +1,9 @@
+# V0 — PDF Discovery
+pytest
+
+# V1 — Text Extraction + Keyword Search
+PyMuPDF
+
+# V2 — Semantic Search (Embeddings & Vector Indexing)
+sentence-transformers
+numpy
