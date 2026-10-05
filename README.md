@@ -2,7 +2,7 @@
 
 A modular, local-first **Personal PDF Knowledge Retrieval & Question-Answering System**.
 
-Point it at a folder which filled with arbitrary PDFs and ask questions in natural language. The system retrieves the most relevant passages and generates grounded answers citing specific documents and page numbers — without requiring you to remember filenames, paper titles, or exact keyword matches.
+Point it at a folder filled with arbitrary PDFs and ask questions in natural language. The system retrieves the most relevant passages and generates grounded answers citing specific documents and page numbers — without requiring you to remember filenames, paper titles, or exact keyword matches.
 
 ---
 
