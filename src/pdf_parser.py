@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class PageContent:
-    """Represents extracted text from a single PDF page."""
     page_number: int        # 1-indexed
     text: str
     char_count: int = 0

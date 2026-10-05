@@ -14,7 +14,6 @@ from src.pdf_parser import ParsedPDF
 
 @dataclass
 class SearchResult:
-    """A single keyword search hit."""
     filename: str
     full_path: str
     page_number: int

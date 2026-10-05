@@ -1,10 +1,6 @@
 """
 PDF Semantic Retrieval & RAG System — Web Dashboard
 
-Provides a fast, local Web Dashboard & REST API built with Flask.
-Allows users to visually explore documents, run multi-strategy search,
-ask grounded RAG questions with interactive citation cards, and run benchmarks.
-
 Usage:
     python -m src.dashboard --folder ./data --port 8000
 """
